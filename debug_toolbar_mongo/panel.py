@@ -6,6 +6,8 @@ from debug_toolbar.panels import DebugPanel
 
 import operation_tracker
 
+from operator import itemgetter
+
 _NAV_SUBTITLE_TPL = u'''
 {% for o, n, t in operations %}
     {{ n }} {{ o }}{{ n|pluralize }} in {{ t }}ms<br/>
@@ -68,10 +70,11 @@ class MongoDebugPanel(DebugPanel):
 
     def content(self):
         context = self.context.copy()
-        context['queries'] = operation_tracker.queries
-        context['inserts'] = operation_tracker.inserts
-        context['updates'] = operation_tracker.updates
-        context['removes'] = operation_tracker.removes
+        time = itemgetter('time')
+        context['queries'] = sorted(operation_tracker.queries, key=time, reverse=True)
+        context['inserts'] = sorted(operation_tracker.inserts, key=time, reverse=True)
+        context['updates'] = sorted(operation_tracker.updates, key=time, reverse=True)
+        context['removes'] = sorted(operation_tracker.removes, key=time, reverse=True)
         return render_to_string('mongo-panel.html', context)
 
 
