@@ -163,6 +163,7 @@ def _cursor_refresh(cursor_self):
         'time': total_time,
         'operation': 'find',
         'stack_trace': _get_stacktrace(),
+        'explain': cursor_self.explain(),
     }
 
     # Collection in format <db_name>.<collection_name>

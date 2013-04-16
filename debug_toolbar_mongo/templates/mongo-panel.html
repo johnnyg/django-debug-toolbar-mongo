@@ -43,6 +43,7 @@ table.mongo-op-table tbody {
             <th>Ordering</th>
             <th>Skip</th>
             <th>Limit</th>
+            <th>Cursor (Num Returned / Num Scanned)</th>
             <th>Stack Trace</th>
         </tr>
     </thead>
@@ -60,6 +61,7 @@ table.mongo-op-table tbody {
                 <td>{% if query.ordering %}<pre class="mongo-highlight">{{ query.ordering }}</pre>{% endif %}</td>
                 <td>{{ query.skip|default:"" }}</td>
                 <td>{{ query.limit|default:"" }}</td>
+                <td>{% if query.explain and query.explain.cursor %}{{ query.explain.cursor }} ({{ query.explain.n }}/{{ query.explain.nscanned }}){% endif %}</td>
                 <td><a href="javascript:void(0);" class="mongo-toggle-trace" data-row="queries-{{ forloop.counter }}">Toggle</a></td>
             </tr>
             <tr class="{% cycle 'djDebugOdd' 'djDebugEven' %}">
