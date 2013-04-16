@@ -14,6 +14,11 @@ import pymongo.cursor
 __all__ = ['queries', 'inserts', 'updates', 'removes', 'install_tracker',
            'uninstall_tracker', 'reset']
 
+if pymongo.version_tuple < (2, 4):
+    _SAFE_ARG = False
+
+else:
+    _SAFE_ARG = None
 
 _original_methods = {
     'insert': pymongo.collection.Collection.insert,
@@ -51,7 +56,7 @@ def _get_stacktrace():
 # Wrap Cursor._refresh for getting queries
 @functools.wraps(_original_methods['insert'])
 def _insert(collection_self, doc_or_docs, manipulate=True,
-           safe=False, check_keys=True, **kwargs):
+           safe=_SAFE_ARG, check_keys=True, **kwargs):
     start_time = time.time()
     result = _original_methods['insert'](
         collection_self,
@@ -65,6 +70,7 @@ def _insert(collection_self, doc_or_docs, manipulate=True,
 
     __traceback_hide__ = True
     inserts.append({
+        'collection': collection_self.name,
         'document': doc_or_docs,
         'safe': safe,
         'time': total_time,
@@ -75,7 +81,7 @@ def _insert(collection_self, doc_or_docs, manipulate=True,
 # Wrap Cursor._refresh for getting queries
 @functools.wraps(_original_methods['update'])
 def _update(collection_self, spec, document, upsert=False,
-           maniuplate=False, safe=False, multi=False, **kwargs):
+           maniuplate=False, safe=_SAFE_ARG, multi=False, **kwargs):
     start_time = time.time()
     result = _original_methods['update'](
         collection_self,
@@ -90,6 +96,7 @@ def _update(collection_self, spec, document, upsert=False,
 
     __traceback_hide__ = True
     updates.append({
+        'collection': collection_self.name,
         'document': document,
         'upsert': upsert,
         'multi': multi,
@@ -102,7 +109,7 @@ def _update(collection_self, spec, document, upsert=False,
 
 # Wrap Cursor._refresh for getting queries
 @functools.wraps(_original_methods['remove'])
-def _remove(collection_self, spec_or_id, safe=False, **kwargs):
+def _remove(collection_self, spec_or_id, safe=_SAFE_ARG, **kwargs):
     start_time = time.time()
     result = _original_methods['remove'](
         collection_self,
@@ -114,6 +121,7 @@ def _remove(collection_self, spec_or_id, safe=False, **kwargs):
 
     __traceback_hide__ = True
     removes.append({
+        'collection': collection_self.name,
         'spec_or_id': spec_or_id,
         'safe': safe,
         'time': total_time,
@@ -131,6 +139,14 @@ def _cursor_refresh(cursor_self):
     if privar('id') is not None:
         # getMore not query - move on
         return _original_methods['refresh'](cursor_self)
+
+    if privar('explain'):
+        # avoid loggin explain cursors, problably used for extra debugging
+        return _original_methods['refresh'](cursor_self)
+
+    if privar('collection').name == '$cmd':
+        if 'explain' in privar('query_spec')():
+            return _original_methods['refresh'](cursor_self)
 
     # NOTE: See pymongo/cursor.py+557 [_refresh()] and
     # pymongo/message.py for where information is stored
