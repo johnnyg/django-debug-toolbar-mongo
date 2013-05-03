@@ -158,12 +158,14 @@ def _cursor_refresh(cursor_self):
 
     query_son = privar('query_spec')()
 
+    explain = cursor_self.explain() if total_time >= 100 else {}
+
     __traceback_hide__ = True
     query_data = {
-        'time': total_time,
+        'time': explain.get('millis', total_time),
         'operation': 'find',
         'stack_trace': _get_stacktrace(),
-        'explain': cursor_self.explain() if total_time >= 100 else {},
+        'explain': explain,
     }
 
     # Collection in format <db_name>.<collection_name>
